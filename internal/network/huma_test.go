@@ -1,4 +1,4 @@
-package network
+package network_test
 
 import (
 	"context"
@@ -9,12 +9,19 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v5"
+	"github.com/mohammed-r9/taxi-api/internal/health"
+	"github.com/mohammed-r9/taxi-api/internal/network"
 )
+
+type testOutput struct {
+	Body string `contentType:"text/plain"`
+}
 
 func newHumaTestAPI() *echo.Echo {
 	e := echo.New()
-	api := NewApi(e, nil, nil, NewRequestValidator())
-	api.InitRoutesV1()
+	api := network.NewApi(e, network.NewRequestValidator())
+	api.Init()
+	health.Register(api)
 	return e
 }
 
@@ -80,8 +87,8 @@ func TestHandleDocumentsBearerAuth(t *testing.T) {
 
 func TestHandleAcceptsEchoMiddlewareDirectly(t *testing.T) {
 	e := echo.New()
-	api := NewApi(e, nil, nil, NewRequestValidator())
-	api.InitRoutesV1()
+	api := network.NewApi(e, network.NewRequestValidator())
+	api.Init()
 
 	middleware := func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
@@ -89,10 +96,10 @@ func TestHandleAcceptsEchoMiddlewareDirectly(t *testing.T) {
 			return next(c)
 		}
 	}
-	Handle(api, http.MethodGet, "/api/v1/middleware-test", Route{
+	network.Handle(api, http.MethodGet, "/api/v1/middleware-test", network.Route{
 		ID: "middlewareTest", Summary: "Test middleware", Tag: "System",
-	}, func(context.Context, *struct{}) (*healthOutput, error) {
-		return &healthOutput{Body: "ok"}, nil
+	}, func(context.Context, *struct{}) (*testOutput, error) {
+		return &testOutput{Body: "ok"}, nil
 	}, middleware)
 
 	recorder := httptest.NewRecorder()

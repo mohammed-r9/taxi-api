@@ -9,6 +9,10 @@ const (
 	InvalidUserID
 	MissingAuthorizationHeader
 	MissingRequiredPermissions
+	InvalidMFACode
+	MFAAlreadyEnabled
+	MFANotConfigured
+	InvalidChallengeToken
 
 	// new errors should be added above this line
 	authErrorCount
@@ -44,6 +48,26 @@ var authErrorTable = [authErrorCount]errorInfo{
 		message: "user does not have the required permissions",
 		code:    "MISSING_REQUIRED_PERMISSIONS",
 		status:  http.StatusForbidden,
+	},
+	InvalidMFACode: {
+		message: "invalid mfa code",
+		code:    "INVALID_MFA_CODE",
+		status:  http.StatusUnauthorized,
+	},
+	MFAAlreadyEnabled: {
+		message: "mfa is already enabled",
+		code:    "MFA_ALREADY_ENABLED",
+		status:  http.StatusConflict,
+	},
+	MFANotConfigured: {
+		message: "mfa is not configured",
+		code:    "MFA_NOT_CONFIGURED",
+		status:  http.StatusBadRequest,
+	},
+	InvalidChallengeToken: {
+		message: "invalid or expired challenge token",
+		code:    "INVALID_CHALLENGE_TOKEN",
+		status:  http.StatusUnauthorized,
 	},
 }
 

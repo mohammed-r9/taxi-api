@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mohammed-r9/go-boiler/internal/apperrors"
+	"github.com/mohammed-r9/taxi-api/internal/apperrors"
 )
 
 func TestValidateAccessTokenMapsExpiredToken(t *testing.T) {
@@ -40,7 +40,7 @@ func TestValidateAccessTokenMapsMalformedToken(t *testing.T) {
 
 func TestAccessTokenRoundTrip(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
-	token, err := GenerateAccessToken(UserAccessData{UserID: 7, Role: "admin"})
+	token, err := GenerateAccessToken(UserAccessData{UserID: 7, RoleID: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestAccessTokenRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if data.UserID != 7 || data.Role != "admin" {
+	if data.UserID != 7 || data.RoleID != 2 {
 		t.Fatalf("claims = %+v", data)
 	}
 }

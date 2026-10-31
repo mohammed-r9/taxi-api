@@ -1,6 +1,6 @@
-module github.com/mohammed-r9/go-boiler
+module github.com/mohammed-r9/taxi-api
 
-go 1.26.5
+go 1.27.3
 
 require (
 	github.com/alexedwards/argon2id v1.0.0

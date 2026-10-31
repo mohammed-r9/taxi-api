@@ -10,12 +10,12 @@ type Map map[string]any
 
 type RateLimitKeyFunc func(c *echo.Context) (string, error)
 
-func RateLimitByIP(c *echo.Context) (string, error) {
-	return "ip:" + c.RealIP(), nil
+func RateLimitByUserID(c *echo.Context) (string, error) {
+	return "rate_limit:" + c.Request().Method + ":" + c.Path() + ":id:" + UserIDFromContext(c), nil
 }
 
-func RateLimitByUserID(c *echo.Context) (string, error) {
-	return "id:" + UserIDFromContext(c), nil
+func RateLimitByIP(c *echo.Context) (string, error) {
+	return "rate_limit:" + c.Request().Method + ":" + c.Path() + ":ip:" + c.RealIP(), nil
 }
 
 func hasPermission(perms, allowed []string) bool {

@@ -32,35 +32,63 @@ Docs are served at `http://localhost:8080/api/docs`; the OpenAPI document is at
 
 ## Adding an endpoint
 
-Handlers use Huma through the small `network.Handle` wrapper, so request bodies
-are validated and documented automatically:
+Each feature lives in its own package under `internal/` and exposes a
+`Register(api *network.Api)` function. Handler implementations stay in the
+feature package; `network.Handle` only wires them to the router and the docs.
 
 ```go
-type createThingInput struct {
+// internal/things/handler.go
+package things
+
+type Handler struct{ validate *network.RequestValidator }
+
+func New(v *network.RequestValidator) *Handler { return &Handler{validate: v} }
+
+type CreateInput struct {
 	Body struct {
 		Name string `json:"name" validate:"required,min=3" minLength:"3"`
 	}
 }
 
-type createThingOutput struct {
-	Body BaseResponse[Map]
+type CreateOutput struct {
+	Body network.BaseResponse[network.Map]
 }
 
-Handle(api, http.MethodPost, "/api/v1/things", Route{
-	ID: "createThing", Summary: "Create a thing", Tag: "Things",
-	Status: http.StatusCreated, Auth: true,
-}, func(ctx context.Context, input *createThingInput) (*createThingOutput, error) {
-	if err := api.validator.Validate(&input.Body); err != nil {
-		return nil, toHumaError(err)
+func (h *Handler) Create(ctx context.Context, input *CreateInput) (*CreateOutput, error) {
+	if err := h.validate.Validate(&input.Body); err != nil {
+		return nil, err
 	}
-	return &createThingOutput{Body: BaseResponse[Map]{
+	return &CreateOutput{Body: network.BaseResponse[network.Map]{
 		Success: true, Status: http.StatusCreated, Message: "created",
-		Data: Map{"name": input.Body.Name},
+		Data: network.Map{"name": input.Body.Name},
 	}}, nil
-})
+}
 ```
 
-Register it from `internal/network/routes.go`.
+```go
+// internal/things/routes.go
+package things
+
+func Register(api *network.Api, h *Handler) {
+	network.Handle(api, http.MethodPost, "/api/v1/things", network.Route{
+		ID: "createThing", Summary: "Create a thing", Tag: "Things",
+		Status: http.StatusCreated, Auth: true,
+	}, h.Create)
+}
+```
+
+Then register the feature from the composition root in
+`internal/router/router.go`:
+
+```go
+func Register(api *network.Api, deps Deps) {
+	api.Init()
+
+	health.Register(api)
+	users.Register(api)
+	things.Register(api, things.New(deps.Validate))
+}
+```
 
 ## Adding database code
 

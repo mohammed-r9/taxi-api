@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v5"
-	"github.com/mohammed-r9/go-boiler/internal/apperrors"
+	"github.com/mohammed-r9/taxi-api/internal/apperrors"
 )
 
 type errorInfo struct {
@@ -22,6 +22,13 @@ func UserIDFromContext(c *echo.Context) string {
 		return id
 	}
 	return ""
+}
+
+// SetUserID stores the request's user identity for logging and rate limiting.
+// Callers may set a validated challenge identity before authentication; it does
+// not grant access to protected routes.
+func SetUserID(c *echo.Context, id string) {
+	c.Set(userIDContextKey, id)
 }
 
 func ErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {

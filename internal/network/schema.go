@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-// BaseResponse is the common envelope returned by successful API operations.
 type BaseResponse[T any] struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
@@ -15,7 +14,10 @@ type BaseResponse[T any] struct {
 	Data    T      `json:"data"`
 }
 
-// ErrorResponse is the common envelope returned by failed API operations.
+type Output[T any] struct {
+	Body BaseResponse[T]
+}
+
 type ErrorResponse struct {
 	Success    bool   `json:"success"`
 	Status     int    `json:"status"`
@@ -43,6 +45,13 @@ func newHumaError(status int, msg string, errs ...error) huma.StatusError {
 	for _, err := range errs {
 		if response, ok := err.(*ErrorResponse); ok {
 			return response
+		}
+	}
+	if status == http.StatusInternalServerError {
+		for _, err := range errs {
+			if err != nil {
+				return toHumaError(err).(*ErrorResponse)
+			}
 		}
 	}
 
@@ -97,13 +106,13 @@ func toHumaError(err error) error {
 	}
 }
 
-func WriteSuccess[T any](ctx *echo.Context, status int, data T, msg string) error {
-	return ctx.JSON(status, BaseResponse[T]{
+func NewSuccessResponse[T any](status int, data T, msg string) *Output[T] {
+	return &Output[T]{Body: BaseResponse[T]{
 		Status:  status,
 		Message: msg,
 		Data:    data,
 		Success: true,
-	})
+	}}
 }
 
 func WriteError(ctx *echo.Context, status int, code, msg string, err ...error) error {

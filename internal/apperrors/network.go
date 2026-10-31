@@ -8,6 +8,7 @@ const (
 	FileTooLarge
 	MissingFile
 	InvalidMime
+	InvalidRole
 
 	// new errors should be added above this line
 	networkErrorCount
@@ -38,6 +39,11 @@ var networkErrorTable = [networkErrorCount]errorInfo{
 		message: "invalid file type",
 		code:    "INVALID_FILE_TYPE",
 		status:  http.StatusUnprocessableEntity,
+	},
+	InvalidRole: {
+		message: "invalid role",
+		code:    "INVALID_ROLE",
+		status:  http.StatusBadRequest,
 	},
 }
 

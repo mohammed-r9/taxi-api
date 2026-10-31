@@ -1,0 +1,46 @@
+-- +goose Up
+CREATE TABLE IF NOT EXISTS roles (
+	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	name TEXT UNIQUE NOT NULL,
+	deleted_at TIMESTAMPTZ DEFAULT NULL,
+	created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE,
+	deleted_at TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS roles_permissions (
+    role_id       BIGINT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id BIGINT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
+);
+
+ALTER TABLE users ADD COLUMN role_id BIGINT NOT NULL REFERENCES roles(id);
+
+CREATE TRIGGER roles_updated_at
+BEFORE UPDATE ON roles
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER permissions_updated_at
+BEFORE UPDATE ON permissions
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
+INSERT INTO roles (name)
+VALUES
+    ('driver'),
+    ('customer')
+ON CONFLICT (name) DO NOTHING;
+
+-- +goose Down
+ALTER TABLE users DROP COLUMN role_id;
+DROP TABLE IF EXISTS roles_permissions;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS roles;

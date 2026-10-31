@@ -8,12 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"uuid"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
-	"github.com/mohammed-r9/go-boiler/db"
-	"github.com/mohammed-r9/go-boiler/internal/network"
+	"github.com/mohammed-r9/taxi-api/db"
+	"github.com/mohammed-r9/taxi-api/internal/network"
+	"github.com/mohammed-r9/taxi-api/internal/router"
 )
 
 const shutdownTimeout = 5 * time.Second
@@ -68,7 +70,11 @@ func (a *application) mount() {
 		e.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 	}
 
-	e.Use(middleware.RequestID())
+	e.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+		Generator: func() string {
+			return uuid.NewV4().String()
+		},
+	}))
 	e.Use(network.RequestLogger(e.Logger))
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS("*"))
@@ -84,6 +90,10 @@ func (a *application) mount() {
 	validator := network.NewRequestValidator()
 
 	a.db = postgres
-	a.api = network.NewApi(e, store, redisdb, validator)
-	a.api.InitRoutesV1()
+	a.api = network.NewApi(e, validator)
+	router.Register(a.api, router.Deps{
+		Store:    store,
+		Redis:    redisdb,
+		Validate: validator,
+	})
 }

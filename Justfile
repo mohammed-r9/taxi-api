@@ -7,7 +7,7 @@ db_connection := "postgres://" \
     + env("DB_USER", "test1") \
     + ":" + env("DB_PASSWORD", "test") \
     + "@" + env("DB_HOST", "localhost") \
-    + ":" + env("DB_PORT", "6123") \
+    + ":" + env("DB_PORT", "5433") \
     + "/" + env("DB_NAME", "test1") \
     + "?sslmode=disable"
 export GOOSE_MIGRATION_DIR := migrations_dir
