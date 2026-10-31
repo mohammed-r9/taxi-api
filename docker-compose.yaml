@@ -1,11 +1,12 @@
 services:
   db:
     container_name: taxi_api_postgres
-    image: postgres:18
+    image: postgis/postgis:18-3.6
     ports:
       - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init-postgis.sql:/docker-entrypoint-initdb.d/10-postgis.sql:ro
     environment:
       POSTGRES_USER: ${DB_USER:-test1}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-test}
