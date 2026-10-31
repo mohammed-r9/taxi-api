@@ -49,5 +49,55 @@ BEFORE UPDATE ON rides
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
+INSERT INTO permissions (name)
+VALUES
+    ('ride.read'),
+    ('ride.create'),
+    ('ride.cancel'),
+    ('ride.delete'),
+    ('ride.accept'),
+    ('ride.arrive'),
+    ('ride.start'),
+    ('ride.complete')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO roles_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.name IN (
+    'ride.read',
+    'ride.create',
+    'ride.cancel',
+    'ride.delete'
+)
+WHERE r.name = 'customer'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+INSERT INTO roles_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.name IN (
+    'ride.read',
+    'ride.cancel',
+    'ride.accept',
+    'ride.arrive',
+    'ride.start',
+    'ride.complete'
+)
+WHERE r.name = 'driver'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
 -- +goose Down
+DELETE FROM permissions
+WHERE name IN (
+    'ride.read',
+    'ride.create',
+    'ride.cancel',
+    'ride.delete',
+    'ride.accept',
+    'ride.arrive',
+    'ride.start',
+    'ride.complete'
+);
+
 DROP TABLE IF EXISTS rides;
