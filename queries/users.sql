@@ -52,3 +52,14 @@ WHERE id = @id;
 -- name: CreateSession :exec
 INSERT INTO sessions (user_id, refresh_token, device_name, expires_at)
 VALUES (@user_id, @refresh_token, @device_name, @expires_at);
+
+-- name: GetUserSession :one
+SELECT
+   	s.user_id,
+	s.refresh_token,
+	s.device_name,
+	s.expires_at,
+   	u.role_id
+FROM sessions s
+JOIN users u ON s.user_id = u.id
+WHERE refresh_token = @refresh_token;

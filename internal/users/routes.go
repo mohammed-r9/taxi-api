@@ -66,6 +66,13 @@ func Register(api *network.Api, deps Deps) {
 	}, h.VerifyMFA,
 		limiter.Middleware(rateLimitPolicy(10), network.RateLimitByIP),
 	)
+
+	network.Handle(api, http.MethodPost, "/api/v1/users/refresh", network.Route{
+		ID:      "refreshToken",
+		Summary: "Refresh access token",
+		Tag:     "Users",
+		Status:  http.StatusOK,
+	}, h.RefreshToken)
 }
 
 func rateLimitPolicy(attempts int64) network.Policy {

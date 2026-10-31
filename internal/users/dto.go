@@ -74,5 +74,16 @@ type MFAVerifyInput struct {
 		Code           string `json:"code" validate:"required,len=6,numeric" minLength:"6" maxLength:"6" pattern:"^[0-9]{6}$"`
 	}
 }
+type RefreshInput struct {
+	Body struct {
+		Token string `json:"token"`
+	}
+}
+
+type RefreshOutput = network.Output[RefreshResponse]
+
+type RefreshResponse struct {
+	Token string `json:"access_token"`
+}
 
 type MFAVerifyOutput = network.Output[AuthResponse]

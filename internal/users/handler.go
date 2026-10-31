@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/mohammed-r9/taxi-api/db"
@@ -145,6 +146,39 @@ func (h *Handler) Me(ctx context.Context, _ *struct{}) (*MeOutput, error) {
 	}
 
 	return network.NewSuccessResponse(http.StatusOK, userFromIDRow(user), "user retrieved"), nil
+}
+
+func (h *Handler) RefreshToken(ctx context.Context, i *RefreshInput) (*RefreshOutput, error) {
+	if err := h.Validator.Validate(&i.Body); err != nil {
+		return nil, err
+	}
+
+	token, err := auth.ParseOpaqueToken(i.Body.Token)
+	if err != nil {
+		return nil, err
+	}
+	hash := token.Hash()
+	session, err := h.Store.GetUserSession(ctx, hash[:])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperrors.InvalidToken
+		}
+		return nil, err
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		return nil, apperrors.ExpiredToken
+	}
+
+	accessToken, err := auth.GenerateAccessToken(auth.UserAccessData{
+		UserID: session.UserID,
+		RoleID: session.RoleID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return network.NewSuccessResponse(http.StatusOK, RefreshResponse{Token: accessToken}, "token refreshed successfully"), nil
 }
 
 func userFromCreateRow(row db.CreateUserRow) UserResponse {

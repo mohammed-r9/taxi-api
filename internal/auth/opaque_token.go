@@ -6,15 +6,12 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
+
+	"github.com/mohammed-r9/taxi-api/internal/apperrors"
 )
 
 const opaqueTokenSize = 32
-
-// ErrInvalidOpaqueToken is returned when a string cannot be decoded into an
-// opaque token
-var ErrInvalidOpaqueToken = errors.New("auth: invalid opaque token")
 
 // OpaqueToken is a fixed-size, cryptographically random token
 //
@@ -37,12 +34,12 @@ func NewOpaqueToken() OpaqueToken {
 func ParseOpaqueToken(s string) (OpaqueToken, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
-		return OpaqueToken{}, fmt.Errorf("%w: %v", ErrInvalidOpaqueToken, err)
+		return OpaqueToken{}, fmt.Errorf("%w: %v", apperrors.InvalidToken, err)
 	}
 	if len(raw) != opaqueTokenSize {
 		return OpaqueToken{}, fmt.Errorf(
 			"%w: got %d bytes, want %d",
-			ErrInvalidOpaqueToken,
+			apperrors.InvalidToken,
 			len(raw),
 			opaqueTokenSize,
 		)

@@ -92,25 +92,6 @@ func (q *Queries) EnableUserTOTP(ctx context.Context, id int64) error {
 	return err
 }
 
-const getRoleByName = `-- name: GetRoleByName :one
-SELECT id, name
-FROM roles
-WHERE name = $1
-  AND deleted_at IS NULL
-`
-
-type GetRoleByNameRow struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-func (q *Queries) GetRoleByName(ctx context.Context, name string) (GetRoleByNameRow, error) {
-	row := q.db.QueryRow(ctx, getRoleByName, name)
-	var i GetRoleByNameRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id,
        email,
@@ -213,6 +194,39 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 		&i.VerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserSession = `-- name: GetUserSession :one
+SELECT
+   	s.user_id,
+	s.refresh_token,
+	s.device_name,
+	s.expires_at,
+   	u.role_id
+FROM sessions s
+JOIN users u ON s.user_id = u.id
+WHERE refresh_token = $1
+`
+
+type GetUserSessionRow struct {
+	UserID       int64     `json:"user_id"`
+	RefreshToken []byte    `json:"refresh_token"`
+	DeviceName   string    `json:"device_name"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	RoleID       int64     `json:"role_id"`
+}
+
+func (q *Queries) GetUserSession(ctx context.Context, refreshToken []byte) (GetUserSessionRow, error) {
+	row := q.db.QueryRow(ctx, getUserSession, refreshToken)
+	var i GetUserSessionRow
+	err := row.Scan(
+		&i.UserID,
+		&i.RefreshToken,
+		&i.DeviceName,
+		&i.ExpiresAt,
+		&i.RoleID,
 	)
 	return i, err
 }
