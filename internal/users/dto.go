@@ -27,29 +27,25 @@ type AuthResponse struct {
 }
 
 type RegisterInput struct {
-	Body struct {
-		Email    string `json:"email" validate:"required,email" format:"email"`
-		Name     string `json:"name" validate:"required,min=2,max=100" minLength:"2" maxLength:"100"`
-		Username string `json:"username" validate:"required,min=3,max=32" minLength:"3" maxLength:"32"`
-		Password string `json:"password" validate:"required,min=8,max=128" minLength:"8" maxLength:"128"`
-		RoleID   int64  `json:"role_id" validate:"required,gt=0" minimum:"1"`
-	}
+	Email    string `json:"email" validate:"required,email" format:"email"`
+	Name     string `json:"name" validate:"required,min=2,max=100" minLength:"2" maxLength:"100"`
+	Username string `json:"username" validate:"required,min=3,max=32" minLength:"3" maxLength:"32"`
+	Password string `json:"password" validate:"required,min=8,max=128" minLength:"8" maxLength:"128"`
+	RoleID   int64  `json:"role_id" validate:"required,gt=0" minimum:"1"`
 }
 
-type RegisterOutput = network.Output[AuthResponse]
+type RegisterOutput = network.ResponseOutput[AuthResponse]
 
 type LoginInput struct {
-	Body struct {
-		Email    string `json:"email" validate:"required,email" format:"email"`
-		Password string `json:"password" validate:"required" minLength:"1"`
-	}
+	Email    string `json:"email" validate:"required,email" format:"email"`
+	Password string `json:"password" validate:"required" minLength:"1"`
 }
 
-type LoginOutput = network.Output[AuthResponse]
+type LoginOutput = network.ResponseOutput[AuthResponse]
 
-type MeOutput = network.Output[UserResponse]
+type MeOutput = network.ResponseOutput[UserResponse]
 
-type MFASetupOutput = network.Output[MFASetupResponse]
+type MFASetupOutput = network.ResponseOutput[MFASetupResponse]
 
 type MFASetupResponse struct {
 	Secret     string `json:"secret"`
@@ -57,33 +53,27 @@ type MFASetupResponse struct {
 }
 
 type MFAEnableInput struct {
-	Body struct {
-		Code string `json:"code" validate:"required,len=6,numeric" minLength:"6" maxLength:"6" pattern:"^[0-9]{6}$"`
-	}
+	Code string `json:"code" validate:"required,len=6,numeric" minLength:"6" maxLength:"6" pattern:"^[0-9]{6}$"`
 }
 
-type MFAEnableOutput = network.Output[MFAEnableResponse]
+type MFAEnableOutput = network.ResponseOutput[MFAEnableResponse]
 
 type MFAEnableResponse struct {
 	Enabled bool `json:"enabled"`
 }
 
 type MFAVerifyInput struct {
-	Body struct {
-		ChallengeToken string `json:"challenge_token" validate:"required" minLength:"1"`
-		Code           string `json:"code" validate:"required,len=6,numeric" minLength:"6" maxLength:"6" pattern:"^[0-9]{6}$"`
-	}
+	ChallengeToken string `json:"challenge_token" validate:"required" minLength:"1"`
+	Code           string `json:"code" validate:"required,len=6,numeric" minLength:"6" maxLength:"6" pattern:"^[0-9]{6}$"`
 }
 type RefreshInput struct {
-	Body struct {
-		Token string `json:"token"`
-	}
+	Token string `json:"token"`
 }
 
-type RefreshOutput = network.Output[RefreshResponse]
+type RefreshOutput = network.ResponseOutput[RefreshResponse]
 
 type RefreshResponse struct {
 	Token string `json:"access_token"`
 }
 
-type MFAVerifyOutput = network.Output[AuthResponse]
+type MFAVerifyOutput = network.ResponseOutput[AuthResponse]

@@ -12,6 +12,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	EnableUserTOTP(ctx context.Context, id int64) error
+	GetRolePermissions(ctx context.Context, roleID int64) ([]string, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserSession(ctx context.Context, refreshToken []byte) (GetUserSessionRow, error)

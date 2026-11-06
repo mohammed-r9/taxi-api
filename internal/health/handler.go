@@ -10,10 +10,9 @@ func New() *Handler {
 	return &Handler{}
 }
 
-type CheckOutput struct {
-	Body string `contentType:"text/plain"`
-}
+type CheckOutput string
 
 func (h *Handler) Check(context.Context, *struct{}) (*CheckOutput, error) {
-	return &CheckOutput{Body: "status is available"}, nil
+	output := CheckOutput("status is available")
+	return &output, nil
 }

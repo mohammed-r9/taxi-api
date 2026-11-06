@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"slices"
 
 	"github.com/labstack/echo/v5"
@@ -25,4 +26,15 @@ func hasPermission(perms, allowed []string) bool {
 		}
 	}
 	return false
+}
+
+type userAccessContextKey struct{}
+
+func WithUserAccess(ctx context.Context, user any) context.Context {
+	return context.WithValue(ctx, userAccessContextKey{}, user)
+}
+
+func UserAccessFromContext(ctx context.Context) (any, bool) {
+	user, ok := ctx.Value(userAccessContextKey{}).(any)
+	return user, ok
 }

@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"testing"
+
+	"github.com/mohammed-r9/taxi-api/internal/apperrors"
 )
 
 func TestOpaqueTokenRoundTrip(t *testing.T) {
@@ -25,8 +27,8 @@ func TestOpaqueTokenRoundTrip(t *testing.T) {
 
 func TestParseOpaqueTokenRejectsInvalidInput(t *testing.T) {
 	for _, input := range []string{"", "not-a-token", "AAAA"} {
-		if _, err := ParseOpaqueToken(input); !errors.Is(err, ErrInvalidOpaqueToken) {
-			t.Errorf("ParseOpaqueToken(%q) error = %v, want ErrInvalidOpaqueToken", input, err)
+		if _, err := ParseOpaqueToken(input); !errors.Is(err, apperrors.InvalidToken) {
+			t.Errorf("ParseOpaqueToken(%q) error = %v, want InvalidToken", input, err)
 		}
 	}
 }

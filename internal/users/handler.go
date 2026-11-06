@@ -16,9 +16,10 @@ import (
 )
 
 type Deps struct {
-	Store     *db.Store
-	Redis     *redis.Client
-	Validator *network.RequestValidator
+	Store      *db.Store
+	Redis      *redis.Client
+	Validator  *network.RequestValidator
+	Middleware *network.Middleware
 }
 
 type Handler struct {
@@ -30,21 +31,17 @@ func New(deps Deps) *Handler {
 }
 
 func (h *Handler) Register(ctx context.Context, in *RegisterInput) (*RegisterOutput, error) {
-	if err := h.Validator.Validate(&in.Body); err != nil {
-		return nil, err
-	}
-
-	passwordHash, err := auth.HashPassword(in.Body.Password)
+	passwordHash, err := auth.HashPassword(in.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	user, err := h.Store.CreateUser(ctx, db.CreateUserParams{
-		Email:    strings.ToLower(strings.TrimSpace(in.Body.Email)),
-		Name:     strings.TrimSpace(in.Body.Name),
-		Username: strings.ToLower(strings.TrimSpace(in.Body.Username)),
+		Email:    strings.ToLower(strings.TrimSpace(in.Email)),
+		Name:     strings.TrimSpace(in.Name),
+		Username: strings.ToLower(strings.TrimSpace(in.Username)),
 		Password: passwordHash,
-		RoleID:   in.Body.RoleID,
+		RoleID:   in.RoleID,
 	})
 	if db.IsUniqueViolation(err) {
 		return nil, apperrors.UniqueViolation
@@ -77,11 +74,7 @@ func (h *Handler) Register(ctx context.Context, in *RegisterInput) (*RegisterOut
 }
 
 func (h *Handler) Login(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
-	if err := h.Validator.Validate(&in.Body); err != nil {
-		return nil, err
-	}
-
-	user, err := h.Store.GetUserByEmail(ctx, strings.ToLower(strings.TrimSpace(in.Body.Email)))
+	user, err := h.Store.GetUserByEmail(ctx, strings.ToLower(strings.TrimSpace(in.Email)))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, apperrors.InvalidCredentials
 	}
@@ -90,7 +83,7 @@ func (h *Handler) Login(ctx context.Context, in *LoginInput) (*LoginOutput, erro
 	}
 
 	matches, err := auth.ComparePassword(auth.ComparePasswordParams{
-		Password:   in.Body.Password,
+		Password:   in.Password,
 		StoredHash: user.Password,
 	})
 	if err != nil {
@@ -131,13 +124,12 @@ func (h *Handler) Login(ctx context.Context, in *LoginInput) (*LoginOutput, erro
 	return network.NewSuccessResponse(http.StatusOK, response, "login successful"), nil
 }
 
-func (h *Handler) Me(ctx context.Context, _ *struct{}) (*MeOutput, error) {
-	current, ok := auth.UserFromContext(ctx)
-	if !ok {
+func (h *Handler) Me(ctx context.Context, _ *struct{}, in *auth.UserAccessData) (*MeOutput, error) {
+	if in.UserID == 0 {
 		return nil, apperrors.InvalidToken
 	}
 
-	user, err := h.Store.GetUserByID(ctx, current.UserID)
+	user, err := h.Store.GetUserByID(ctx, in.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, apperrors.InvalidUserID
 	}
@@ -149,11 +141,7 @@ func (h *Handler) Me(ctx context.Context, _ *struct{}) (*MeOutput, error) {
 }
 
 func (h *Handler) RefreshToken(ctx context.Context, i *RefreshInput) (*RefreshOutput, error) {
-	if err := h.Validator.Validate(&i.Body); err != nil {
-		return nil, err
-	}
-
-	token, err := auth.ParseOpaqueToken(i.Body.Token)
+	token, err := auth.ParseOpaqueToken(i.Token)
 	if err != nil {
 		return nil, err
 	}

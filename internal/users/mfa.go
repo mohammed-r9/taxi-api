@@ -13,13 +13,8 @@ import (
 	"github.com/mohammed-r9/taxi-api/internal/network"
 )
 
-func (h *Handler) SetupMFA(ctx context.Context, _ *struct{}) (*MFASetupOutput, error) {
-	current, ok := auth.UserFromContext(ctx)
-	if !ok {
-		return nil, apperrors.InvalidToken
-	}
-
-	user, err := h.Store.GetUserByID(ctx, current.UserID)
+func (h *Handler) SetupMFA(ctx context.Context, _ *struct{}, in *auth.UserAccessData) (*MFASetupOutput, error) {
+	user, err := h.Store.GetUserByID(ctx, in.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, apperrors.InvalidUserID
 	}
@@ -55,16 +50,7 @@ func (h *Handler) SetupMFA(ctx context.Context, _ *struct{}) (*MFASetupOutput, e
 	}, "mfa setup initialized"), nil
 }
 
-func (h *Handler) EnableMFA(ctx context.Context, in *MFAEnableInput) (*MFAEnableOutput, error) {
-	if err := h.Validator.Validate(&in.Body); err != nil {
-		return nil, err
-	}
-
-	current, ok := auth.UserFromContext(ctx)
-	if !ok {
-		return nil, apperrors.InvalidToken
-	}
-
+func (h *Handler) EnableMFA(ctx context.Context, in *MFAEnableInput, current *auth.UserAccessData) (*MFAEnableOutput, error) {
 	user, err := h.Store.GetUserByID(ctx, current.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, apperrors.InvalidUserID
@@ -80,7 +66,7 @@ func (h *Handler) EnableMFA(ctx context.Context, in *MFAEnableInput) (*MFAEnable
 	if err != nil {
 		return nil, err
 	}
-	if !auth.ValidateTOTP(secret, in.Body.Code) {
+	if !auth.ValidateTOTP(secret, in.Code) {
 		return nil, apperrors.InvalidMFACode
 	}
 
@@ -92,11 +78,7 @@ func (h *Handler) EnableMFA(ctx context.Context, in *MFAEnableInput) (*MFAEnable
 }
 
 func (h *Handler) VerifyMFA(ctx context.Context, in *MFAVerifyInput) (*MFAVerifyOutput, error) {
-	if err := h.Validator.Validate(&in.Body); err != nil {
-		return nil, err
-	}
-
-	challenge, err := auth.ValidateMFAChallengeToken(in.Body.ChallengeToken)
+	challenge, err := auth.ValidateMFAChallengeToken(in.ChallengeToken)
 	if err != nil {
 		return nil, apperrors.InvalidChallengeToken
 	}
@@ -123,7 +105,7 @@ func (h *Handler) VerifyMFA(ctx context.Context, in *MFAVerifyInput) (*MFAVerify
 	if err != nil {
 		return nil, err
 	}
-	if !auth.ValidateTOTP(secret, in.Body.Code) {
+	if !auth.ValidateTOTP(secret, in.Code) {
 		return nil, apperrors.InvalidMFACode
 	}
 

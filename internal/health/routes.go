@@ -9,9 +9,10 @@ import (
 func Register(api *network.Api) {
 	h := New()
 
-	network.Handle(api, http.MethodGet, "/api/v1/health", network.Route{
-		ID:      "health",
-		Summary: "Check API availability",
-		Tag:     "System",
+	api.Handle(http.MethodGet, "/api/v1/health", network.Route{
+		ID:          "health",
+		Summary:     "Check API availability",
+		Tag:         "System",
+		ContentType: "text/plain",
 	}, h.Check)
 }

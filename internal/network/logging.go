@@ -1,7 +1,6 @@
 package network
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 )
 
-// RequestLogger logs request metadata, but never bodies or credentials.
 func RequestLogger(logger *slog.Logger) echo.MiddlewareFunc {
 	if logger == nil {
 		logger = slog.Default()
@@ -56,28 +54,4 @@ func requestLogLevel(status int) slog.Level {
 		return slog.LevelWarn
 	}
 	return slog.LevelInfo
-}
-
-func logOperationError(logger *slog.Logger, ctx context.Context, method, path, operation string, err error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	status, info := mapError(err)
-	cause := err
-	if response, ok := err.(*ErrorResponse); ok && response.cause != nil {
-		cause = response.cause
-	}
-	attrs := []any{
-		slog.String("operation", operation),
-		slog.String("method", method),
-		slog.String("path", path),
-		slog.Int("status", status),
-		slog.String("code", info.code),
-		slog.String("error", err.Error()),
-		slog.String("cause", cause.Error()),
-	}
-	if userID, ok := ctx.Value(userIDContextKey).(string); ok && userID != "" {
-		attrs = append(attrs, slog.String("user_id", userID))
-	}
-	logger.Log(ctx, requestLogLevel(status), "api operation failed", attrs...)
 }

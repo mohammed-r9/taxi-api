@@ -1,6 +1,7 @@
 package users_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,7 +16,7 @@ func TestUsersRoutesAreRegistered(t *testing.T) {
 	e := echo.New()
 	api := network.NewApi(e, network.NewRequestValidator())
 	api.Init()
-	users.Register(api, users.Deps{})
+	users.Register(api, users.Deps{Middleware: network.NewMiddleware(nil, nil)})
 
 	recorder := httptest.NewRecorder()
 	e.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/docs/openapi.json", nil))
@@ -36,5 +37,25 @@ func TestUsersRoutesAreRegistered(t *testing.T) {
 		if !strings.Contains(spec, path) {
 			t.Errorf("openapi document does not contain %s", path)
 		}
+	}
+
+	var document struct {
+		Paths map[string]struct {
+			Get struct {
+				RequestBody json.RawMessage `json:"requestBody"`
+			} `json:"get"`
+			Post struct {
+				RequestBody json.RawMessage `json:"requestBody"`
+			} `json:"post"`
+		} `json:"paths"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &document); err != nil {
+		t.Fatalf("decode OpenAPI document: %v", err)
+	}
+	if len(document.Paths["/api/v1/users/me"].Get.RequestBody) != 0 {
+		t.Fatal("token-only route /api/v1/users/me should not document a request body")
+	}
+	if len(document.Paths["/api/v1/users/mfa/setup"].Post.RequestBody) != 0 {
+		t.Fatal("token-only route /api/v1/users/mfa/setup should not document a request body")
 	}
 }

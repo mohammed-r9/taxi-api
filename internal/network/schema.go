@@ -1,21 +1,14 @@
 package network
 
 import (
-	"net/http"
-
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/labstack/echo/v5"
 )
 
-type BaseResponse[T any] struct {
+type ResponseOutput[T any] struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
 	Success bool   `json:"success"`
 	Data    T      `json:"data"`
-}
-
-type Output[T any] struct {
-	Body BaseResponse[T]
 }
 
 type ErrorResponse struct {
@@ -34,85 +27,13 @@ func (e *ErrorResponse) GetStatus() int { return e.httpStatus }
 
 func (e *ErrorResponse) Unwrap() error { return e.cause }
 
-func configureHumaErrors() {
-	huma.NewError = newHumaError
-	huma.NewErrorWithContext = func(_ huma.Context, status int, msg string, errs ...error) huma.StatusError {
-		return newHumaError(status, msg, errs...)
-	}
-}
-
-func newHumaError(status int, msg string, errs ...error) huma.StatusError {
-	for _, err := range errs {
-		if response, ok := err.(*ErrorResponse); ok {
-			return response
-		}
-	}
-	if status == http.StatusInternalServerError {
-		for _, err := range errs {
-			if err != nil {
-				return toHumaError(err).(*ErrorResponse)
-			}
-		}
-	}
-
-	code := "INVALID_REQUEST_BODY"
-	if status >= http.StatusInternalServerError {
-		code = "internal_error"
-	}
-
-	details := make([]string, 0, len(errs))
-	for _, err := range errs {
-		if err != nil {
-			details = append(details, err.Error())
-		}
-	}
-
-	var detail any
-	if len(details) > 0 {
-		detail = details
-	}
-
-	return &ErrorResponse{
-		Success:    false,
-		Status:     status,
-		Code:       code,
-		Message:    msg,
-		Detail:     detail,
-		httpStatus: status,
-	}
-}
-
-func toHumaError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if _, ok := err.(huma.StatusError); ok {
-		return err
-	}
-
-	status, info := mapError(err)
-	var detail any
-	if len(info.detail) > 0 {
-		detail = info.detail
-	}
-	return &ErrorResponse{
-		Success:    false,
-		Status:     status,
-		Code:       info.code,
-		Message:    info.message,
-		Detail:     detail,
-		httpStatus: status,
-		cause:      err,
-	}
-}
-
-func NewSuccessResponse[T any](status int, data T, msg string) *Output[T] {
-	return &Output[T]{Body: BaseResponse[T]{
+func NewSuccessResponse[T any](status int, data T, msg string) *ResponseOutput[T] {
+	return &ResponseOutput[T]{
 		Status:  status,
 		Message: msg,
 		Data:    data,
 		Success: true,
-	}}
+	}
 }
 
 func WriteError(ctx *echo.Context, status int, code, msg string, err ...error) error {

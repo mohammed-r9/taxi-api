@@ -20,10 +20,13 @@ type Deps struct {
 func Register(api *network.Api, deps Deps) {
 	api.Init()
 
+	mw := network.NewMiddleware(deps.Store, deps.Redis)
+
 	health.Register(api)
 	users.Register(api, users.Deps{
-		Store:     deps.Store,
-		Redis:     deps.Redis,
-		Validator: deps.Validate,
+		Store:      deps.Store,
+		Redis:      deps.Redis,
+		Validator:  deps.Validate,
+		Middleware: mw,
 	})
 }
