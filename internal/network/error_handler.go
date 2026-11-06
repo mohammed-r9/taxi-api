@@ -2,11 +2,12 @@ package network
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/mohammed-r9/taxi-api/internal/apperrors"
+	"github.com/rs/zerolog"
 )
 
 type errorInfo struct {
@@ -31,9 +32,10 @@ func SetUserID(c *echo.Context, id string) {
 	c.Set(userIDContextKey, id)
 }
 
-func ErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
+func ErrorHandler(logger *zerolog.Logger) echo.HTTPErrorHandler {
 	if logger == nil {
-		logger = slog.Default()
+		nop := zerolog.Nop()
+		logger = &nop
 	}
 
 	return func(c *echo.Context, err error) {
@@ -44,24 +46,23 @@ func ErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
 
 		status, info := mapError(err)
 
-		args := []any{
-			slog.String("route", c.Path()),
-			slog.String("method", c.Request().Method),
-			slog.Int("status", status),
-			slog.String("error", err.Error()),
-			slog.String("ip", c.RealIP()),
+		event := logger.WithLevel(levelFor(status)).
+			Str("route", c.Path()).
+			Str("method", c.Request().Method).
+			Int("status", status).
+			Str("error", err.Error()).
+			Str("ip", c.RealIP()).
+			Str("request_id", c.Response().Header().Get(echo.HeaderXRequestID))
+
+		if start, ok := c.Request().Context().Value(requestStartKey{}).(time.Time); ok {
+			event = event.Str("latency", time.Since(start).String())
 		}
 
 		if userID := UserIDFromContext(c); userID != "" {
-			args = append(args, slog.String("user_id", userID))
+			event = event.Str("user_id", userID)
 		}
 
-		logger.Log(
-			c.Request().Context(),
-			levelFor(status),
-			"request failed",
-			args...,
-		)
+		event.Msg("request failed")
 
 		if c.Request().Method == http.MethodHead {
 			_ = c.NoContent(status)
@@ -81,6 +82,13 @@ func ErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
 
 		_ = WriteError(c, status, info.code, info.message)
 	}
+}
+
+func levelFor(status int) zerolog.Level {
+	if status >= http.StatusInternalServerError {
+		return zerolog.ErrorLevel
+	}
+	return zerolog.WarnLevel
 }
 
 func mapError(err error) (int, errorInfo) {
@@ -116,11 +124,4 @@ func mapError(err error) (int, errorInfo) {
 		code:    "internal_error",
 		message: http.StatusText(http.StatusInternalServerError),
 	}
-}
-
-func levelFor(status int) slog.Level {
-	if status >= 500 {
-		return slog.LevelError
-	}
-	return slog.LevelWarn
 }

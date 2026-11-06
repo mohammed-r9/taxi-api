@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/mohammed-r9/taxi-api/internal/apperrors"
 	"github.com/mohammed-r9/taxi-api/internal/auth"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -81,10 +81,10 @@ func (m *Middleware) RateLimit(policy Policy, keyFunc RateLimitKeyFunc) echo.Mid
 
 			key, err := keyFunc(c)
 			if err != nil {
-				slog.ErrorContext(ctx, "failed to build rate-limit key",
-					"error", err,
-					"key", key,
-				)
+				zerolog.Ctx(ctx).Error().
+					Err(err).
+					Str("key", key).
+					Msg("failed to build rate-limit key")
 
 				return WriteError(
 					c,
@@ -97,10 +97,10 @@ func (m *Middleware) RateLimit(policy Policy, keyFunc RateLimitKeyFunc) echo.Mid
 
 			storedCount, err := m.rdb.Incr(ctx, key).Result()
 			if err != nil {
-				slog.ErrorContext(ctx, "failed to increment rate-limit counter",
-					"error", err,
-					"key", key,
-				)
+				zerolog.Ctx(ctx).Error().
+					Err(err).
+					Str("key", key).
+					Msg("failed to increment rate-limit counter")
 
 				return WriteError(
 					c,
@@ -113,10 +113,10 @@ func (m *Middleware) RateLimit(policy Policy, keyFunc RateLimitKeyFunc) echo.Mid
 
 			if storedCount == 1 {
 				if err := m.rdb.Expire(ctx, key, policy.Window).Err(); err != nil {
-					slog.ErrorContext(ctx, "failed to set rate-limit expiration",
-						"error", err,
-						"key", key,
-					)
+					zerolog.Ctx(ctx).Error().
+						Err(err).
+						Str("key", key).
+						Msg("failed to set rate-limit expiration")
 
 					return WriteError(
 						c,
@@ -151,10 +151,10 @@ func (m *Middleware) rolePermissions(ctx context.Context, roleID int64) ([]strin
 			return cached, nil
 		}
 		if err != nil && !errors.Is(err, redis.Nil) {
-			slog.WarnContext(ctx, "failed to read role permissions from cache",
-				"role_id", roleID,
-				"error", err,
-			)
+			zerolog.Ctx(ctx).Warn().
+				Err(err).
+				Int64("role_id", roleID).
+				Msg("failed to read role permissions from cache")
 		}
 	}
 
@@ -169,10 +169,10 @@ func (m *Middleware) rolePermissions(ctx context.Context, roleID int64) ([]strin
 
 	if m.rdb != nil && len(permissions) > 0 {
 		if err := cacheRolePermissions(ctx, m.rdb, key, permissions); err != nil {
-			slog.WarnContext(ctx, "failed to cache role permissions",
-				"role_id", roleID,
-				"error", err,
-			)
+			zerolog.Ctx(ctx).Warn().
+				Err(err).
+				Int64("role_id", roleID).
+				Msg("failed to cache role permissions")
 		}
 	}
 

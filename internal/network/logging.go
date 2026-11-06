@@ -1,19 +1,24 @@
 package network
 
 import (
-	"log/slog"
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/rs/zerolog"
 )
 
-func RequestLogger(logger *slog.Logger) echo.MiddlewareFunc {
+type requestStartKey struct{}
+
+func RequestLogger(logger *zerolog.Logger) echo.MiddlewareFunc {
 	if logger == nil {
-		logger = slog.Default()
+		nop := zerolog.Nop()
+		logger = &nop
 	}
 
-	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+	requestLogger := middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		HandleError:     true,
 		LogLatency:      true,
 		LogRemoteIP:     true,
@@ -24,34 +29,45 @@ func RequestLogger(logger *slog.Logger) echo.MiddlewareFunc {
 		LogStatus:       true,
 		LogResponseSize: true,
 		LogValuesFunc: func(c *echo.Context, values middleware.RequestLoggerValues) error {
-			attrs := []any{
-				slog.String("request_id", values.RequestID),
-				slog.String("method", values.Method),
-				slog.String("path", values.URIPath),
-				slog.String("route", values.RoutePath),
-				slog.Int("status", values.Status),
-				slog.Duration("latency", values.Latency),
-				slog.Int64("response_bytes", values.ResponseSize),
-				slog.String("ip", values.RemoteIP),
-			}
-			if userID := UserIDFromContext(c); userID != "" {
-				attrs = append(attrs, slog.String("user_id", userID))
-			}
 			if values.Error != nil {
-				attrs = append(attrs, slog.String("error", values.Error.Error()))
+				return nil
 			}
-			logger.Log(c.Request().Context(), requestLogLevel(values.Status), "request completed", attrs...)
+
+			event := logger.WithLevel(requestLogLevel(values.Status)).
+				Str("request_id", values.RequestID).
+				Str("method", values.Method).
+				Str("path", values.URIPath).
+				Str("route", values.RoutePath).
+				Int("status", values.Status).
+				Str("latency", values.Latency.String()).
+				Int64("response_bytes", values.ResponseSize).
+				Str("ip", values.RemoteIP)
+			if userID := UserIDFromContext(c); userID != "" {
+				event = event.Str("user_id", userID)
+			}
+			event.Msg("request completed")
 			return nil
 		},
 	})
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		withLogger := func(c *echo.Context) error {
+			ctx := logger.WithContext(c.Request().Context())
+			ctx = context.WithValue(ctx, requestStartKey{}, time.Now())
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+
+		return requestLogger(withLogger)
+	}
 }
 
-func requestLogLevel(status int) slog.Level {
+func requestLogLevel(status int) zerolog.Level {
 	if status >= http.StatusInternalServerError {
-		return slog.LevelError
+		return zerolog.ErrorLevel
 	}
 	if status >= http.StatusBadRequest {
-		return slog.LevelWarn
+		return zerolog.WarnLevel
 	}
-	return slog.LevelInfo
+	return zerolog.InfoLevel
 }
