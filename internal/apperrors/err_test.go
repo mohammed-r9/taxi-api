@@ -73,12 +73,30 @@ func TestDatabaseErrTable(t *testing.T) {
 	}
 }
 
+func TestRideErrTable(t *testing.T) {
+	for e := range int(rideErrorCount) {
+		info := rideErrorTable[e]
+
+		if info.code == "" ||
+			info.message == "" ||
+			info.status == 0 {
+			t.Fatalf(
+				"invalid entry at %v (%v): %+v",
+				e,
+				rideError(e),
+				info,
+			)
+		}
+	}
+}
+
 func TestOutOfRangeErrorsFallBackTo500(t *testing.T) {
 	errs := []AppError{
 		authError(authErrorCount),
 		networkError(networkErrorCount),
 		databaseError(dbErrorCount),
 		envError(envErrorCount),
+		rideError(rideErrorCount),
 	}
 
 	for _, err := range errs {

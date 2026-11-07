@@ -4,6 +4,7 @@ import (
 	"github.com/mohammed-r9/taxi-api/db"
 	"github.com/mohammed-r9/taxi-api/internal/health"
 	"github.com/mohammed-r9/taxi-api/internal/network"
+	"github.com/mohammed-r9/taxi-api/internal/rides"
 	"github.com/mohammed-r9/taxi-api/internal/users"
 	"github.com/redis/go-redis/v9"
 )
@@ -24,6 +25,12 @@ func Register(api *network.Api, deps Deps) {
 
 	health.Register(api)
 	users.Register(api, users.Deps{
+		Store:      deps.Store,
+		Redis:      deps.Redis,
+		Validator:  deps.Validate,
+		Middleware: mw,
+	})
+	rides.Register(api, rides.Deps{
 		Store:      deps.Store,
 		Redis:      deps.Redis,
 		Validator:  deps.Validate,

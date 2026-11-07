@@ -26,7 +26,6 @@ func (q *Queries) GetRolePermissions(ctx context.Context, roleID int64) ([]strin
 		return nil, err
 	}
 	defer rows.Close()
-
 	items := []string{}
 	for rows.Next() {
 		var name string

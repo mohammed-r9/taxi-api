@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CreateRide(ctx context.Context, arg CreateRideParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	EnableUserTOTP(ctx context.Context, id int64) error

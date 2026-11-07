@@ -5,6 +5,7 @@ type (
 	networkError  uint8
 	databaseError uint8
 	envError      uint8
+	rideError     uint8
 )
 
 type AppError interface {
