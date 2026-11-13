@@ -9,6 +9,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/mohammed-r9/taxi-api/internal/auth"
+	"github.com/stretchr/testify/require"
 )
 
 type authTestOutput string
@@ -21,9 +22,7 @@ func TestAuthPopulatesHandlerContext(t *testing.T) {
 	api.Init()
 
 	token, err := auth.GenerateAccessToken(auth.UserAccessData{UserID: 42, RoleID: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	api.Handle(http.MethodGet, "/protected", Route{
 		ID: "protected",
@@ -45,9 +44,7 @@ func TestAuthPopulatesHandlerContext(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	e.ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
 }
 
 func TestHandleInjectsUserAccess(t *testing.T) {
@@ -58,9 +55,7 @@ func TestHandleInjectsUserAccess(t *testing.T) {
 	api.Init()
 
 	token, err := auth.GenerateAccessToken(auth.UserAccessData{UserID: 42, RoleID: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	api.HandleAuthed(http.MethodGet, "/protected-injected", Route{
 		ID: "protectedInjected",
@@ -77,9 +72,7 @@ func TestHandleInjectsUserAccess(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	e.ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
 }
 
 func TestAuthRejectsMissingHeader(t *testing.T) {
@@ -97,7 +90,5 @@ func TestAuthRejectsMissingHeader(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	e.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/protected", nil))
 
-	if recorder.Code != http.StatusUnauthorized {
-		t.Fatalf("status = %d, want 401", recorder.Code)
-	}
+	require.Equal(t, http.StatusUnauthorized, recorder.Code)
 }

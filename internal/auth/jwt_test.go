@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mohammed-r9/taxi-api/internal/apperrors"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateAccessTokenMapsExpiredToken(t *testing.T) {
@@ -20,36 +20,25 @@ func TestValidateAccessTokenMapsExpiredToken(t *testing.T) {
 		},
 	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("test-secret"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_, err = ValidateAccessToken(token)
-	if !errors.Is(err, apperrors.ExpiredToken) {
-		t.Fatalf("error = %v, want ExpiredToken", err)
-	}
+	require.ErrorIs(t, err, apperrors.ExpiredToken)
 }
 
 func TestValidateAccessTokenMapsMalformedToken(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	_, err := ValidateAccessToken("not-a-jwt")
-	if !errors.Is(err, apperrors.InvalidToken) {
-		t.Fatalf("error = %v, want InvalidToken", err)
-	}
+	require.ErrorIs(t, err, apperrors.InvalidToken)
 }
 
 func TestAccessTokenRoundTrip(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	token, err := GenerateAccessToken(UserAccessData{UserID: 7, RoleID: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	data, err := ValidateAccessToken(token)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if data.UserID != 7 || data.RoleID != 2 {
-		t.Fatalf("claims = %+v", data)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(7), data.UserID)
+	require.Equal(t, int64(2), data.RoleID)
 }

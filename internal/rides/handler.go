@@ -104,6 +104,7 @@ func (h *Handler) ConfirmRide(ctx context.Context, in *ConfirmRideInput, user *a
 		return nil, err
 	}
 
+	// despatch ride in a nats jetstream later
 	return network.NewSuccessResponse(http.StatusOK, ConfirmRideResponse{
 		RideID: rideID,
 		Status: "requested",

@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/mohammed-r9/taxi-api/internal/network"
 	"github.com/mohammed-r9/taxi-api/internal/users"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUsersRoutesAreRegistered(t *testing.T) {
@@ -21,9 +22,7 @@ func TestUsersRoutesAreRegistered(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	e.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/docs/openapi.json", nil))
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d", recorder.Code)
-	}
+	require.Equal(t, http.StatusOK, recorder.Code)
 
 	spec := recorder.Body.String()
 	for _, path := range []string{
@@ -49,13 +48,7 @@ func TestUsersRoutesAreRegistered(t *testing.T) {
 			} `json:"post"`
 		} `json:"paths"`
 	}
-	if err := json.Unmarshal(recorder.Body.Bytes(), &document); err != nil {
-		t.Fatalf("decode OpenAPI document: %v", err)
-	}
-	if len(document.Paths["/api/v1/users/me"].Get.RequestBody) != 0 {
-		t.Fatal("token-only route /api/v1/users/me should not document a request body")
-	}
-	if len(document.Paths["/api/v1/users/mfa/setup"].Post.RequestBody) != 0 {
-		t.Fatal("token-only route /api/v1/users/mfa/setup should not document a request body")
-	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &document))
+	require.Empty(t, document.Paths["/api/v1/users/me"].Get.RequestBody)
+	require.Empty(t, document.Paths["/api/v1/users/mfa/setup"].Post.RequestBody)
 }

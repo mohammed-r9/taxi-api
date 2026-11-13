@@ -1,8 +1,9 @@
 package network
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type exampleRequest struct {
@@ -13,16 +14,10 @@ type exampleRequest struct {
 func TestRequestValidator(t *testing.T) {
 	v := NewRequestValidator()
 
-	if err := v.Validate(exampleRequest{Email: "a@b.com", Name: "abc"}); err != nil {
-		t.Fatalf("valid request returned error: %v", err)
-	}
+	require.NoError(t, v.Validate(exampleRequest{Email: "a@b.com", Name: "abc"}))
 
 	err := v.Validate(exampleRequest{Email: "not-an-email", Name: "ab"})
 	var validationErr *RequestValidationError
-	if !errors.As(err, &validationErr) {
-		t.Fatalf("error = %v, want RequestValidationError", err)
-	}
-	if len(validationErr.Messages) != 2 {
-		t.Fatalf("messages = %v, want 2 entries", validationErr.Messages)
-	}
+	require.ErrorAs(t, err, &validationErr)
+	require.Len(t, validationErr.Messages, 2)
 }
